@@ -31,12 +31,17 @@ be routed through an HTTP proxy.
 ## Install & enable
 
 ```bash
-# from npm (once published)
-appium plugin install --source=npm appium-mitm-plugin
-# or from this repo
-appium plugin install --source=git https://github.com/v-dermichev/appium-mitm-plugin
-# or local checkout
+# from this repo (git source REQUIRES --package with the package name)
+appium plugin install --source=git \
+  https://github.com/v-dermichev/appium-mitm-plugin.git \
+  --package appium-mitm-plugin
+# equivalently via the github source
+appium plugin install --source=github \
+  v-dermichev/appium-mitm-plugin --package appium-mitm-plugin
+# or from a local checkout
 appium plugin install --source=local /path/to/appium-mitm-plugin
+# or from npm (once published)
+appium plugin install --source=npm appium-mitm-plugin
 
 # enable it (alongside any other plugins)
 appium --use-plugins=mitm
