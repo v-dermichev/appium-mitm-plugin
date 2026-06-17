@@ -1,0 +1,24 @@
+{
+  "name": "appium-mitm-plugin",
+  "version": "0.1.0",
+  "description": "Appium plugin that runs mitmproxy alongside the Appium server and exposes captured HTTP(S) flows (with decoded bodies) via execute commands.",
+  "type": "module",
+  "main": "index.js",
+  "appium": {
+    "pluginName": "mitm",
+    "mainClass": "MitmPlugin"
+  },
+  "peerDependencies": {
+    "appium": "^2.0.0 || ^3.0.0"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "addons",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
