@@ -7,7 +7,7 @@
 //   2. exposes a command                   -> executeMethodMap (mitm: getFlows/clearFlows/status)
 //   3. alerts if mitm is not accessible    -> proxyManager health check; status.error
 //                                             and getFlows throws a clear error.
-import {BasePlugin} from 'appium/plugin';
+import {BasePlugin} from '@appium/base-plugin';
 
 import {FlowStore} from './lib/flow-store.js';
 import {proxyManager} from './lib/proxy-manager.js';

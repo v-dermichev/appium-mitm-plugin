@@ -8,8 +8,17 @@
     "pluginName": "mitm",
     "mainClass": "MitmPlugin"
   },
+  "dependencies": {
+    "@appium/base-plugin": "^3.0.5",
+    "@appium/support": "^7.0.4"
+  },
   "peerDependencies": {
     "appium": "^2.0.0 || ^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "appium": {
+      "optional": true
+    }
   },
   "files": [
     "index.js",
