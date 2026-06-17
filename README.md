@@ -60,16 +60,65 @@ Via environment variables on the Appium host (or `--plugin-mitm-<arg>` CLI args)
 
 ## Device setup (one-time)
 
-The device must send its traffic through the proxy and trust the mitm CA:
+The plugin runs the proxy on the **Appium host**; each device just needs to
+(1) route its traffic through `http://<appium-host-ip>:<MITM_PORT>` and
+(2) trust the mitmproxy CA. The CA lives on the host at
+`~/.mitmproxy/mitmproxy-ca-cert.pem` (`.cer` for iOS, `.pem`/`.crt` for Android),
+or fetch it from the device browser at `http://mitm.it` while the proxy is set.
 
-- **Proxy:** point the device's Wi-Fi HTTP proxy at `MITM_HOST:MITM_PORT`.
-- **CA trust:** install the mitm CA (`http://mit.it` via the device browser, or
-  push a configuration profile) and enable full trust. On a **supervised**
-  device a profile can set the proxy and trust the CA hands-off — recommended
-  for CI.
+The device must be able to reach the host's IP — bind the proxy on all
+interfaces (`MITM_HOST=0.0.0.0`, the default) and put both on the same network.
 
-Apple/Google system services pin their certs and will fail through the proxy;
-that's expected and does not affect your app's own API traffic.
+> System/OS services (Apple, Google, Play Services) pin their certs and will
+> fail through the proxy — that's expected and does not affect your app's own
+> API traffic.
+
+### iOS
+
+- **Proxy:** Settings ▸ Wi-Fi ▸ ⓘ on the network ▸ Configure Proxy ▸ Manual →
+  Server `<appium-host-ip>`, Port `<MITM_PORT>`.
+- **CA trust:** open `http://mitm.it` in Safari → install the **iOS** profile
+  (Settings ▸ General ▸ VPN & Device Management), then **enable full trust**:
+  Settings ▸ General ▸ About ▸ Certificate Trust Settings → toggle mitmproxy on.
+  *(The trust toggle is mandatory — without it nothing decrypts.)*
+- **Hands-off / CI:** on a **supervised** device, push one configuration profile
+  (via MDM or Apple Configurator) that sets the proxy **and** trusts the CA with
+  no taps. This is the scalable path for CI.
+
+### Android
+
+- **Proxy:** Settings ▸ Wi-Fi ▸ (long-press network) ▸ Modify ▸ Advanced ▸
+  Proxy ▸ Manual → host `<appium-host-ip>`, port `<MITM_PORT>`. Or over adb:
+  ```bash
+  adb shell settings put global http_proxy <appium-host-ip>:<MITM_PORT>
+  adb shell settings put global http_proxy :0        # clear it again
+  ```
+- **CA trust — mind the Android version:**
+  - **Android ≤ 6:** install the mitm CA as a user cert (via `mitm.it` or
+    Settings ▸ Security ▸ Install a certificate ▸ CA) — apps trust it.
+  - **Android 7+ (API 24+):** apps trust **user** CAs **only if** their build
+    opts in with a `network_security_config` (e.g. a debug build that trusts
+    `user` certs). Otherwise the CA must go into the **system** store, which
+    needs root or an emulator with a writable system partition:
+    ```bash
+    # emulator started with -writable-system; cert named by subject hash
+    HASH=$(openssl x509 -inform PEM -subject_hash_old -in ~/.mitmproxy/mitmproxy-ca-cert.pem | head -1)
+    cp ~/.mitmproxy/mitmproxy-ca-cert.pem $HASH.0
+    adb root && adb remount
+    adb push $HASH.0 /system/etc/security/cacerts/
+    adb shell chmod 644 /system/etc/security/cacerts/$HASH.0
+    adb reboot
+    ```
+  - **Hands-off / CI:** use a debug build whose `network_security_config` trusts
+    user certs (then a simple user-cert install works), or a rooted/emulator
+    image with the CA pre-baked into the system store.
+
+### Both platforms — pinning
+
+If the app **cert-pins**, no CA trust will decrypt it (you'll see TLS-error
+records). Supply the app's trusted CA via `MITM_CERTS` for **CA pinning**; for
+**SPKI/leaf pinning** you need a debug build with pinning disabled. See
+[Pinning](#pinning) below.
 
 ## Commands
 
