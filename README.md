@@ -59,9 +59,28 @@ Via environment variables on the Appium host (or `--plugin-mitm-<arg>` CLI args)
 | `MITM_OUT` | `~/.appium-mitm/flows.jsonl` | captured-flows file (JSONL) |
 | `MITM_MAX_BODY` | `131072` | per-body byte cap before truncation |
 | `MITM_CERTS` | – | developer-supplied CA cert(+key) PEM for **CA-pinned** apps (`mitmdump --certs`); does **not** help SPKI/leaf pinning |
+| `MITM_ALLOW_HOSTS` | – | intercept **only** these hosts/IPs, tunnel everything else (mitmdump `--allow-hosts`) |
+| `MITM_IGNORE_HOSTS` | – | intercept everything **except** these hosts/IPs (mitmdump `--ignore-hosts`) |
 | `MITM_CONFDIR` | – | mitmproxy confdir (`--set confdir=`) |
 | `MITM_EXTRA_ARGS` | – | extra space-separated mitmdump args |
 | `MITM_READY_TIMEOUT_MS` | `12000` | how long to wait for the port to come up |
+
+### Scoping capture to specific hosts
+
+`MITM_ALLOW_HOSTS` and `MITM_IGNORE_HOSTS` are passed straight to mitmproxy
+(`--allow-hosts` / `--ignore-hosts`) — same flags, same regex matching against
+host or IP — so anyone who knows mitmproxy gets the obvious lever:
+
+- **`MITM_ALLOW_HOSTS`** — an allowlist: intercept (decrypt + record) **only**
+  matching hosts; everything else is raw-tunneled (not captured). Use it to
+  capture just your app's API and skip the noise.
+- **`MITM_IGNORE_HOSTS`** — a denylist: intercept everything **except** matching
+  hosts. Handy to bypass pinned system services or high-volume CDNs.
+
+Each accepts a single pattern or a comma-separated list (each pattern is repeated
+as its own flag), e.g. `MITM_ALLOW_HOSTS='api\.example\.com,10\.0\.0\.5'`. The
+two are **mutually exclusive** (mitmproxy rejects both at once); setting both
+makes the plugin refuse to start and report the conflict via `mitm: status.error`.
 
 ## Device setup (one-time)
 
@@ -130,7 +149,8 @@ records). Supply the app's trusted CA via `MITM_CERTS` for **CA pinning**; for
 ```js
 // status / health — use to assert the proxy is up before relying on capture
 await driver.execute('mitm: status');
-// -> { available, running, reachable, host, port, binary, flowsFile, error }
+// -> { available, running, reachable, host, port, binary, flowsFile,
+//      allowHosts, ignoreHosts, error }
 
 // fetch captured flows; poll incrementally with the returned cursor,
 // and scope to your device with client (IP) / host filters
